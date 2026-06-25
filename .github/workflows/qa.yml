@@ -1,0 +1,108 @@
+name: QA Tests — i2o Retail
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target app URL'
+        required: true
+        default: 'https://qa4.i2oretail.com'
+      api_base_url:
+        description: 'API base URL'
+        required: true
+        default: 'https://qa2.i2oretail.com'
+      suite:
+        description: 'Which test suite to run'
+        required: true
+        type: choice
+        default: 'all'
+        options:
+          - all
+          - e2e
+          - api
+
+jobs:
+  qa-tests:
+    name: Run ${{ github.event.inputs.suite }} tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout QA repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run all tests
+        if: github.event.inputs.suite == 'all'
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ github.event.inputs.environment }}
+          API_BASE_URL: ${{ github.event.inputs.api_base_url }}
+          KEYCLOAK_URL: https://qa.i2oretail.com
+          KEYCLOAK_REALM: i2o-realm
+          KEYCLOAK_CLIENT_ID: i2o-client
+          QA_USERNAME: ${{ secrets.QA_USERNAME }}
+          QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+          ORG_ID: ${{ secrets.ORG_ID }}
+          MARKETPLACE: Amazon
+          REGION: US
+          TIMEZONE: Asia/Calcutta
+
+      - name: Run E2E tests only
+        if: github.event.inputs.suite == 'e2e'
+        run: npx playwright test --project=setup --project=e2e
+        env:
+          BASE_URL: ${{ github.event.inputs.environment }}
+          API_BASE_URL: ${{ github.event.inputs.api_base_url }}
+          KEYCLOAK_URL: https://qa.i2oretail.com
+          KEYCLOAK_REALM: i2o-realm
+          KEYCLOAK_CLIENT_ID: i2o-client
+          QA_USERNAME: ${{ secrets.QA_USERNAME }}
+          QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+          ORG_ID: ${{ secrets.ORG_ID }}
+          MARKETPLACE: Amazon
+          REGION: US
+          TIMEZONE: Asia/Calcutta
+
+      - name: Run API tests only
+        if: github.event.inputs.suite == 'api'
+        run: npx playwright test --project=api
+        env:
+          BASE_URL: ${{ github.event.inputs.environment }}
+          API_BASE_URL: ${{ github.event.inputs.api_base_url }}
+          KEYCLOAK_URL: https://qa.i2oretail.com
+          KEYCLOAK_REALM: i2o-realm
+          KEYCLOAK_CLIENT_ID: i2o-client
+          QA_USERNAME: ${{ secrets.QA_USERNAME }}
+          QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+          ORG_ID: ${{ secrets.ORG_ID }}
+          MARKETPLACE: Amazon
+          REGION: US
+          TIMEZONE: Asia/Calcutta
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results (JUnit XML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: test-results/
+          retention-days: 7

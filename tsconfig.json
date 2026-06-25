@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "baseUrl": "."
+  },
+  "include": ["tests/**/*.ts", "fixtures/**/*.ts", "helpers/**/*.ts"]
+}
